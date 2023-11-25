@@ -1,4 +1,6 @@
-﻿namespace TestProject1;
+﻿using System.Security.Cryptography.X509Certificates;
+
+namespace TestProject1;
 
 public class BudgetService
 {
@@ -15,14 +17,27 @@ public class BudgetService
         if (end >= start)
         {
             var allBudget = _repo.GetAll();
-            var fullMonthBudget = allBudget.FirstOrDefault(x => x.YearMonth == $"{end.Year}{end.Month}", new Budget()
+            var totalMonths = (end.Month - start.Month + 1) + 12 * (end.Year - start.Year);
+            var totalAmount = 0M;
+            for (var i = 0; i < totalMonths; i++)
             {
-            });
+                var currentMonth = start.AddMonths(i);
+                var fullMonthBudget = allBudget.FirstOrDefault(x => x.YearMonth == $"{currentMonth.Year}{currentMonth:MM}", new Budget());
+                var dailyBudget = fullMonthBudget.Amount / GetDaysInMonth(currentMonth);
 
-            var dailyBudget = fullMonthBudget.Amount / GetDaysInMonth(end);
-            var days = (end - start).Days + 1;
+                var tempStart = currentMonth.Month == start.Month && currentMonth.Year == start.Year
+                    ? start
+                    : new DateTime(currentMonth.Year, currentMonth.Month, 1);
+                var tempEnd = currentMonth.Month == end.Month && currentMonth.Year == end.Year
+                    ? end
+                    : new DateTime(currentMonth.Year, currentMonth.Month, GetDaysInMonth(currentMonth));
 
-            return dailyBudget * days;
+
+                var days = (tempEnd - tempStart).Days + 1;
+                totalAmount += dailyBudget * days;
+            }
+
+            return totalAmount;
         }
 
         return 0;
